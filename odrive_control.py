@@ -49,13 +49,19 @@ class Odrive:
 
     def _set_turn_s(self, turn_s):
         self.odrv0.axis1.controller.config.control_mode = ControlMode.VELOCITY_CONTROL
-        self.odrv0.axis1.controller.input_vel = turn_s
+        # TODO: Once the mechanical system is robust remove the abs and the "-"
+        self.odrv0.axis1.controller.input_vel = - abs(turn_s)
         self.odrv0.axis1.requested_state = AxisState.CLOSED_LOOP_CONTROL
 
     def print_values(self):
-        print("pos_estimate", self.odrv0.axis1.encoder.pos_estimate)
-        print("pos_estimate_counts", self.odrv0.axis1.encoder.pos_estimate_counts)
-        print("pos_circular", self.odrv0.axis1.encoder.pos_circular)
+        print("shadow_count", self.odrv0.axis1.encoder.shadow_count)
+        # print("pos_estimate", self.odrv0.axis1.encoder.pos_estimate)
+        # print("pos_estimate_counts", self.odrv0.axis1.encoder.pos_estimate_counts)
+        # print("pos_circular", self.odrv0.axis1.encoder.pos_circular)
+        # print("shadow_count", self.odrv0.axis1.encoder.shadow_count)
+        # print("count_in_cpr", self.odrv0.axis1.encoder.count_in_cpr)
+        print("pos_cpr_counts", self.odrv0.axis1.encoder.pos_cpr_counts)
+        # print("delta_pos_cpr_counts", self.odrv0.axis1.encoder.delta_pos_cpr_counts)
         print("vel_estimate", self.odrv0.axis1.encoder.vel_estimate, "\n")
 
 
@@ -68,6 +74,11 @@ class OdriveEncoderHall(Odrive):
         self._bandwidth = 100
         self._pole_pairs = 8
         self._vel_limit = 10
+        self._shadow_count_init = self.odrv0.axis1.encoder.shadow_count
+        self._angle_motor = 0
+        self._angle_crank = 0
+
+        self._old_shadow = 0
 
     def configuration(self):
         print("Configuration for HALL encoder")
@@ -83,17 +94,38 @@ class OdriveEncoderHall(Odrive):
         """
         self._set_turn_s(speed)
 
-    def get_angle(self) -> int:
+    def get_angle_motor(self) -> float:
         """
         Gives the angles corresponding of the crank.
+        We consider the initial position to be 0°.
 
         Returns
         -------
-        angle : int
-            Crank angle value (0-360)
+        _angle_motor : float
+            Motor angle value (0-360)
         """
         # TODO:To reset this value we could use the Z value from the lm13.
-        pass
+        shadow_count = self.odrv0.axis1.encoder.shadow_count
+
+        print("dif shadow", self._old_shadow - shadow_count)
+        self._old_shadow = shadow_count
+
+        self._angle_motor = (((self._shadow_count_init - shadow_count) / 48) * 360) % 360
+        return self._angle_motor
+
+    def get_angle_crank(self) -> float:
+        """
+        Gives the angle of the crank.
+        For now, a calibration is needed since the initial angle is considered to be 0.
+
+        Returns
+        -------
+        _angle_crank : float
+            Crank angle value (0-360)
+        """
+        shadow_count = self.odrv0.axis1.encoder.shadow_count
+        self._angle_crank = ((((self._shadow_count_init - shadow_count) / 48) * 360) / 41.8) % 360
+        return self._angle_crank
 
 
 class OdriveEncoderIncremental(Odrive):
