@@ -4,6 +4,7 @@ from pyScienceMode2 import Stimulator as St
 from pyScienceMode2 import Channel as Ch
 
 from odrive_control import *
+import sensix
 
 
 def init_motor():
