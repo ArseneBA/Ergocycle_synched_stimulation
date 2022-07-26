@@ -145,7 +145,11 @@ def get_and_process_angle(queue_stim, stim_angle_event):
 
 
 def stimulation(queue_stim, stim_angle_event):
+    motor = OdriveEncoderHall()
+    motor.set_speed(1)
+
     stimulator, list_channels = init_rehastim()
+
 
     while 1:
         stim_angle_event.wait()
