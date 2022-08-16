@@ -33,7 +33,7 @@ class Odrive:
 
     def _config_brake_resistor(self):
         self.odrv0.config.enable_brake_resistor = True
-        self.odrv0.config.brake_resistance = 2.3
+        self.odrv0.config.brake_resistance = 3.3
 
     def _config_controller(self, vel_limit):
         self.odrv0.axis1.controller.config.pos_gain = 1  # For position control
